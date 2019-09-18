@@ -1,53 +1,35 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-
-// bring the middlware
-//const auth = require("../../middleware/auth");
-
-// expa
-//   .getToken()
-//   .then(console.log)
-//   .catch(console.log);
-
-//expa.get('current_person.json').then(console.log).catch(console.log);
-
-// bring USER MODEL
-
-//const User = require("../../models/User");
-
-// everything needed for authentifiaction
-const { check, validationResult } = require("express-validator");
-const jwt = require("jsonwebtoken");
-const config = require("config");
-const bcrypt = require("bcryptjs");
+const bcrypt = require('bcryptjs');
+const auth = require('../midleware/auth');
+const jwt = require('jsonwebtoken');
+const config = require('config');
+const User = require('../models/user');
+const { check, validationResult } = require('express-validator');
 
 // @route   GET api/auth
-// @desc    test route
+// @desc    authenticate & get token
 // @acess   Public
 
-// router.get("/", auth, async (req, res) => {
-//   try {
-//     const user = await User.findById(req.user.id).select("-password");
-//     res.json(user);
-//   } catch (err) {
-//     console.error(err.message);
-//     res.status(500).send("serveer error");
-//   }
-
-//   res.send("Auth route");
-// });
-
-// @route   POST api/users
-// @desc    Autenticate user and get token
-// @acess   Public because u have to get the token to make request tu private routes
+router.get('/', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 router.post(
-  "/",
+  '/',
   [
-    check("email", "please include valid email").isEmail(),
-    check("password", "Password is required").exists()
+    check('email', 'Please include a valid email').isEmail(),
+    check('password', 'password is required').exists()
   ],
   async (req, res) => {
+    console.log(req.body);
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -55,28 +37,41 @@ router.post(
 
     const { email, password } = req.body;
 
-    // see if user exits
-
     try {
-      // use the wrapper function
-
-      var expa = require("../midleware/node-gis-wrapper-master/index.js")(
-        email,
-        password,
-        false
-      );
-
-      var aiesecer = await expa.get("current_person.json");
-
-      res.send({ aiesecer });
-    } catch (err) {
-      if (err.message === "undefined") {
+      let user = await User.findOne({ email });
+      console.log(user);
+      if (!user) {
         return res
           .status(400)
-          .json({ errors: [{ msg: "Invalid Credentials" }] });
+          .json({ errors: [{ msg: 'invalid credentials' }] });
       }
+
+      // const isMatch = await bcrypt.compare(password, user.password);
+
+      // if (!isMatch) {
+      //   return res
+      //     .status(400)
+      //     .json({ errors: [{ msg: 'invalid credentials' }] });
+      // }
+
+      const payload = {
+        user: {
+          id: user.id
+        }
+      };
+
+      jwt.sign(
+        payload,
+        config.get('jwtSecret'),
+        { expiresIn: 360000 },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
+    } catch (err) {
       console.error(err.message);
-      res.status(500).send("Serveur error");
+      res.status(500).send('server error');
     }
   }
 );

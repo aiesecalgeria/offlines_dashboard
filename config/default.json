@@ -1,4 +1,4 @@
 {
-  "mongoURI": "mongodb+srv://sami123:sami123@cluster0-vgkna.mongodb.net/test?retryWrites=true&w=majority",
+  "mongoURI": "mongodb+srv://sami123:sami123@cluster0-vgkna.mongodb.net/Offlinetool?retryWrites=true&w=majority",
   "jwtSecret": "mysecrettoken"
 }
